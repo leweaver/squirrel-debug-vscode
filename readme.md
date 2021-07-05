@@ -1,13 +1,13 @@
 # VS Code Squirrel Debugger
 This extension is designed to connect to a [Squirrel DeBugger](https://github.com/leweaver/squirrel-debug-server) (SDB) running in a C++ process. This extension does not contain any syntax highlighting or language service features. For that, you will need to install one of the other existing extensions.
 
-To quickly 'try it out', you can [https://github.com/leweaver/squirrel-debug-server/releases/](download a pre-built sample application) that runs Quirrel scripts with a started SDB instance.
+To quickly 'try it out', you can [download a pre-built sample application](https://github.com/leweaver/squirrel-debug-server/releases/) that runs Quirrel scripts with a started SDB instance.
 
 To make proper use of SDB in your use case, you will want embed SDB into the application in which you have embedded squirrel.
 
 # Instructions for use with Sample Binary
 1. Install this extension
-1. [https://github.com/leweaver/squirrel-debug-server/releases/](Download latest sample binary), then place in a convenient location.
+1. [Download latest sample binary](https://github.com/leweaver/squirrel-debug-server/releases/), then place in a convenient location.
 1. In your VSCode workspace, create/open the `.vscode/settings.json` file.
 1. Set the `"sdb_config.runtime_path"` field to the absolute path of your downloaded sample binary. Eg, `"C:\\vscode-quirrel-debugger\\sample_app.exe"`
 1. Open any squirrel file in your VSCode Workspace

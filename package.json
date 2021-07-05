@@ -2,7 +2,7 @@
   "name": "squirrel-debug",
   "displayName": "Squirrel Debug Client",
   "version": "0.1.0",
-  "publisher": "leweaver",
+  "publisher": "LewisWeaver",
   "description": "Extension for debugging squirrel based VM's in a host application, remotely in VS Code.",
   "author": {
     "name": "Lewis Weaver",
@@ -10,7 +10,7 @@
   },
   "license": "MIT",
   "keywords": [
-    "multi-root ready"
+    "squirrel", "quirrel", "debugger"
   ],
   "engines": {
     "vscode": "^1.55.0"
