@@ -1,4 +1,4 @@
 {
 	"debug.inlineValues": true,
-	"squid_tools.runtime_path": "C:\\repos\\vscode-quirrel-debugger\\out\\build\\x64-Debug (default)\\sample_app\\sample_app.exe"
+	"sdb_config.runtime_path": "C:\\repos\\vscode-quirrel-debugger\\squirrel-debug-server\\out\\build\\x64-Release (default)\\sample_app\\sample_app.exe"
 }

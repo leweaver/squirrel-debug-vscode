@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { SquidDebugSession } from './squidDebug';
+import { SdbClientSession } from './sdbClientSession';
 
 import { readFile } from 'fs';
 import * as Net from 'net';
-import { FileAccessor } from './squidRuntime';
+import { FileAccessor } from './sdbRuntime';
 
 /*
  * debugAdapter.js is the entrypoint of the debug adapter when it runs as a separate process.
@@ -34,7 +34,7 @@ const fsAccessor:  FileAccessor = {
  * When the debug adapter is run as an external process,
  * normally the helper function DebugSession.run(...) takes care of everything:
  *
- * 	SquidDebugSession.run(SquidDebugSession);
+ * 	SdbClientSession.run(SdbClientSession);
  *
  * but here the helper is not flexible enough to deal with a debug session constructors with a parameter.
  * So for now we copied and modified the helper:
@@ -58,14 +58,14 @@ if (port > 0) {
         socket.on('end', () => {
             console.error('>> client connection closed\n');
         });
-        const session = new SquidDebugSession(fsAccessor);
+        const session = new SdbClientSession(fsAccessor);
         session.setRunAsServer(true);
         session.start(socket, socket);
     }).listen(port);
 } else {
 
     // start a single session that communicates via stdin/stdout
-    const session = new SquidDebugSession(fsAccessor);
+    const session = new SdbClientSession(fsAccessor);
     process.on('SIGTERM', () => {
         session.shutdown();
     });

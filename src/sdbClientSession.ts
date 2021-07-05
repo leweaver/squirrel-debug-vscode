@@ -11,8 +11,8 @@ import {
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
-import { SquidRuntime, ISquidBreakpoint, FileAccessor } from './squidRuntime';
-import { Variable, VariableType } from './squidDto';
+import { SdbClientRuntime, ISdbClientBreakpoint, FileAccessor } from './sdbRuntime';
+import { Variable, VariableType } from './sdbDto';
 import { Subject } from 'await-notify';
 
 function timeout(ms: number) {
@@ -20,9 +20,9 @@ function timeout(ms: number) {
 }
 
 /**
- * This interface describes the squid-debug specific launch attributes
+ * This interface describes the squirrel-debug specific launch attributes
  * (which are not part of the Debug Adapter Protocol).
- * The schema for these attributes lives in the package.json of the squid-debug extension.
+ * The schema for these attributes lives in the package.json of the squirrel-debug extension.
  * The interface should always match this schema.
  */
 interface ILaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
@@ -44,12 +44,12 @@ class DeferredBreakpoint extends Breakpoint {
     }
 }
 
-export class SquidDebugSession extends DebugSession {
+export class SdbClientSession extends DebugSession {
 
     // we don't support multiple threads, so we can use a hardcoded ID for the default thread
     private static threadID = 1;
 
-    private _runtime: SquidRuntime;
+    private _runtime: SdbClientRuntime;
 
     private _variableHandles = new Handles<string>();
 
@@ -78,32 +78,32 @@ export class SquidDebugSession extends DebugSession {
         this.setDebuggerLinesStartAt1(true);
         this.setDebuggerColumnsStartAt1(true);
 
-        this._runtime = new SquidRuntime(fileAccessor);
+        this._runtime = new SdbClientRuntime(fileAccessor);
 
         // setup event handlers
         this._runtime.on('stopOnEntry', () => {
-            this.sendEvent(new StoppedEvent('entry', SquidDebugSession.threadID));
+            this.sendEvent(new StoppedEvent('entry', SdbClientSession.threadID));
         });
         this._runtime.on('stopOnStep', () => {
-            this.sendEvent(new StoppedEvent('step', SquidDebugSession.threadID));
+            this.sendEvent(new StoppedEvent('step', SdbClientSession.threadID));
         });
         this._runtime.on('stopOnBreakpoint', () => {
-            this.sendEvent(new StoppedEvent('breakpoint', SquidDebugSession.threadID));
+            this.sendEvent(new StoppedEvent('breakpoint', SdbClientSession.threadID));
         });
         this._runtime.on('stopOnDataBreakpoint', () => {
-            this.sendEvent(new StoppedEvent('data breakpoint', SquidDebugSession.threadID));
+            this.sendEvent(new StoppedEvent('data breakpoint', SdbClientSession.threadID));
         });
         this._runtime.on('stopOnException', (exception) => {
             if (exception) {
-                this.sendEvent(new StoppedEvent(`exception(${exception})`, SquidDebugSession.threadID));
+                this.sendEvent(new StoppedEvent(`exception(${exception})`, SdbClientSession.threadID));
             } else {
-                this.sendEvent(new StoppedEvent('exception', SquidDebugSession.threadID));
+                this.sendEvent(new StoppedEvent('exception', SdbClientSession.threadID));
             }
         });
         this._runtime.on('continued', () => {
-            this.sendEvent(new ContinuedEvent(SquidDebugSession.threadID));
+            this.sendEvent(new ContinuedEvent(SdbClientSession.threadID));
         });
-        this._runtime.on('breakpointValidated', (bp: ISquidBreakpoint) => {
+        this._runtime.on('breakpointValidated', (bp: ISdbClientBreakpoint) => {
             logger.log("BP Changed: " + bp.id + " -> " + bp.verified);
             this.sendEvent(new BreakpointEvent('changed', { verified: bp.verified, id: bp.id } as DebugProtocol.Breakpoint));
         });
@@ -205,7 +205,7 @@ export class SquidDebugSession extends DebugSession {
         // TODO:
         // make sure to 'Stop' the buffered logging if 'trace' is not set
         //logger.setup(args.trace === false ? Logger.LogLevel.Stop : Logger.LogLevel.Verbose, false);
-        logger.setup(Logger.LogLevel.Verbose, undefined/*'c:\\Squid.txt'*/);
+        logger.setup(Logger.LogLevel.Verbose, undefined);
 
         // wait until configuration has finished (and configurationDoneRequest has been called)
         await this._configurationDone.wait(1000);
@@ -283,7 +283,7 @@ export class SquidDebugSession extends DebugSession {
         // runtime supports no threads so just return a default thread.
         response.body = {
             threads: [
-                new Thread(SquidDebugSession.threadID, "thread 1")
+                new Thread(SdbClientSession.threadID, "thread 1")
             ]
         };
         this.sendResponse(response);
@@ -583,6 +583,6 @@ export class SquidDebugSession extends DebugSession {
     //---- helpers
 
     private createSource(filePath: string): Source {
-        return new Source(basename(filePath), this.convertDebuggerPathToClient(filePath), undefined, undefined, 'squid-adapter-data');
+        return new Source(basename(filePath), this.convertDebuggerPathToClient(filePath), undefined, undefined, 'sdb-adapter-data');
     }
 }

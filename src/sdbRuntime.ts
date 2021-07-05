@@ -4,7 +4,7 @@
 
 import { logger} from 'vscode-debugadapter';
 import { EventEmitter } from 'events';
-import { EventMessage, EventMessageType, Status, OutputLine, Runstate, Variable, ResolvedBreakpoint } from './squidDto';
+import { EventMessage, EventMessageType, Status, OutputLine, Runstate, Variable, ResolvedBreakpoint } from './sdbDto';
 
 import encodeUrl = require('encodeurl');
 import got = require('got');
@@ -19,11 +19,11 @@ export interface FileAccessor {
     readFile(path: string): Promise<string>;
 }
 
-export interface ISquidCreateBreakpoint {
+export interface ISdbClientCreateBreakpoint {
     line: number;
 }
 
-export interface ISquidBreakpoint extends ISquidCreateBreakpoint {
+export interface ISdbClientBreakpoint extends ISdbClientCreateBreakpoint {
     id: number;
     line: number;
     verified: boolean;
@@ -43,36 +43,21 @@ interface IStack {
 }
 
 /**
- * A Squid runtime with minimal debugger functionality.
+ * An Sdb Client runtime
  */
-export class SquidRuntime extends EventEmitter {
-
-    // the initial (and one and only) file we are 'debugging'
-    //private _sourceFile: string = '';
-    //public get sourceFile() {
-        //return this._sourceFile;
-    //}
+export class SdbClientRuntime extends EventEmitter {
 
     // Files that we've loaded lines for
     private _sourceLines = new Map<string, string[]>();
 
-    // This is the next line that will be 'executed'
-    //private _currentLine = 0;
-    //private _currentColumn: number | undefined;
-
-    // maps from sourceFile to array of Squid breakpoints
-    private _breakPoints = new Map<string, ISquidBreakpoint[]>();
+    // maps from sourceFile to array of SDB breakpoints
+    private _breakPoints = new Map<string, ISdbClientBreakpoint[]>();
 
     // since we want to send breakpoint events, we will assign an id to every event
     // so that the frontend can match events with breakpoints.
     private _breakpointId = 1;
 
-    //private _breakAddresses = new Set<string>();
-
     private _connected = false;
-
-    //private _namedException: string | undefined;
-    //private _otherExceptions = false;
 
     private _debuggerHostnamePort = "localhost:8000";
     private _ws?: WebSocket = undefined;
@@ -83,7 +68,7 @@ export class SquidRuntime extends EventEmitter {
 
     constructor(private _fileAccessor: FileAccessor) {
         super();
-        logger.log("Creating new squidRuntime");
+        logger.log("Creating new SdbClientRuntime");
     }
 
     /**
@@ -203,12 +188,12 @@ export class SquidRuntime extends EventEmitter {
     /*
      * Set breakpoint in file with given line.
      */
-    public async setBreakPoint(path: string, line: number): Promise<ISquidBreakpoint> {
+    public async setBreakPoint(path: string, line: number): Promise<ISdbClientBreakpoint> {
 
-        const bp: ISquidBreakpoint = { verified: false, line, id: this._breakpointId++ };
+        const bp: ISdbClientBreakpoint = { verified: false, line, id: this._breakpointId++ };
         let bps = this._breakPoints.get(path);
         if (!bps) {
-            bps = new Array<ISquidBreakpoint>();
+            bps = new Array<ISdbClientBreakpoint>();
             this._breakPoints.set(path, bps);
         }
         bps.push(bp);
@@ -221,7 +206,7 @@ export class SquidRuntime extends EventEmitter {
     /*
      * Clear breakpoint in file with given line.
      */
-    public clearBreakPoint(path: string, line: number): ISquidBreakpoint | undefined {
+    public clearBreakPoint(path: string, line: number): ISdbClientBreakpoint | undefined {
         const bps = this._breakPoints.get(path);
         if (bps) {
             const index = bps.findIndex(bp => bp.line === line);
@@ -239,7 +224,7 @@ export class SquidRuntime extends EventEmitter {
         logger.log("in verifyBreakpoints bps.length=" + (bps?.length ?? "null") + " _connected=" + this._connected);
         if (bps) {
             if (this._connected) {
-                const breakpoints = bps.map((bp: ISquidBreakpoint) => {
+                const breakpoints = bps.map((bp: ISdbClientBreakpoint) => {
                     return {
                         "id": bp.id,
                         "line": bp.line
@@ -273,7 +258,7 @@ export class SquidRuntime extends EventEmitter {
     /**
      * Clears, then recreates all breakpoints for the given file. Will validate all breakpoints.
      */
-    public async setFileBreakpoints(path: string, newBreakpoints: ISquidCreateBreakpoint[]): Promise<ISquidBreakpoint[]> {
+    public async setFileBreakpoints(path: string, newBreakpoints: ISdbClientCreateBreakpoint[]): Promise<ISdbClientBreakpoint[]> {
         logger.log("in setFileBreakpoints");
         this._breakPoints.delete(path);
         let bps = new Array<ResolvedBreakpoint>();

@@ -5,12 +5,12 @@
 'use strict';
 
 import * as vscode from 'vscode';
-import { WorkspaceFolder, DebugConfiguration, ProviderResult } from 'vscode';
-import { SquidDebugSession } from './squidDebug';
-import { FileAccessor } from './squidRuntime';
+import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
+import { SdbClientSession } from './sdbClientSession';
+import { FileAccessor } from './sdbRuntime';
 import { getConfiguration } from './utils';
 
-export function activateSquidDebug(context: vscode.ExtensionContext, factory?: vscode.DebugAdapterDescriptorFactory) {
+export function activateSdbClient(context: vscode.ExtensionContext, factory?: vscode.DebugAdapterDescriptorFactory) {
     context.subscriptions.push(
         vscode.commands.registerCommand('extension.squirrel-debug.runEditorContents', (resource: vscode.Uri) => {
             let targetResource = resource;
@@ -54,18 +54,18 @@ export function activateSquidDebug(context: vscode.ExtensionContext, factory?: v
 
     context.subscriptions.push(vscode.commands.registerCommand('extension.squirrel-debug.getHostnamePort', config => {
         return vscode.window.showInputBox({
-            placeHolder: "Please enter the hostname and port of the application hosting Squid",
+            placeHolder: "Please enter the hostname and port of the application hosting SDB",
             value: "localhost:8000"
         });
     }));
 
-    context.subscriptions.push(vscode.commands.registerCommand('extension.squirrel-debug.getSquidRuntime', config => {
+    context.subscriptions.push(vscode.commands.registerCommand('extension.squirrel-debug.getSdbRuntime', config => {
         return getConfiguration('runtime_path');
     }));
 
     // register a configuration provider for current open 'squirrel' file debug type
-    //const provider = new SquidConfigurationProvider();
-    //context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('squirrel', provider));
+    const provider = new SdbConfigurationProvider();
+    context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('squirrel', provider));
 
     // register a dynamic configuration provider for 'squirrel' debug type
     context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('squirrel', {
@@ -76,7 +76,7 @@ export function activateSquidDebug(context: vscode.ExtensionContext, factory?: v
                     request: "launch",
                     type: "squirrel",
                     hostnamePort: "localhost:8000",
-                    program: '"${command:SquidRuntime}" -p 8000 -s -f ${file}"'
+                    program: '"${command:SdbRuntime}" -p 8000 -s -f ${file}"'
                 }
             ];
         }
@@ -131,34 +131,35 @@ export function activateSquidDebug(context: vscode.ExtensionContext, factory?: v
     }));
 }
 
-// class MockConfigurationProvider implements vscode.DebugConfigurationProvider {
+class SdbConfigurationProvider implements vscode.DebugConfigurationProvider {
 
-// 	/**
-// 	 * Massage a debug configuration just before a debug session is being launched,
-// 	 * e.g. add all missing attributes to the debug configuration.
-// 	 */
-// 	resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
+	/**
+	 * Massage a debug configuration just before a debug session is being launched,
+	 * e.g. add all missing attributes to the debug configuration.
+	 */
+	resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
 
-// 		// if launch.json is missing or empty
-// 		if (!config.type && !config.request && !config.name) {
-// 			const editor = vscode.window.activeTextEditor;
-// 			if (editor && editor.document.languageId === 'squirrel') {
-// 				config.type = 'squirrel';
-// 				config.name = 'Launch';
-// 				config.request = 'launch';
-// 				config.program = '${file}';
-// 			}
-// 		}
+		// if launch.json is missing or empty
+		if (!config.type && !config.request && !config.name) {
+			const editor = vscode.window.activeTextEditor;
+			if (editor && editor.document.languageId === 'squirrel') {
+                config.type = "squirrel";
+                config.name = "Launch";
+                config.request = "launch";
+                config.hostnamePort = "localhost:8000";
+                config.program = '"${command:SdbRuntime}" -p 8000 -s -f ${file}"';
+			}
+		}
 
-// 		if (!config.program) {
-// 			return vscode.window.showInformationMessage("Cannot find a program to debug").then(_ => {
-// 				return undefined;	// abort launch
-// 			});
-// 		}
+		if (!config.program) {
+			return vscode.window.showInformationMessage("Cannot find a program to debug").then(_ => {
+				return undefined;	// abort launch
+			});
+		}
 
-// 		return config;
-// 	}
-// }
+		return config;
+	}
+}
 
 export const workspaceFileAccessor: FileAccessor = {
     async readFile(path: string) {
@@ -183,6 +184,6 @@ export const workspaceFileAccessor: FileAccessor = {
 class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 
     createDebugAdapterDescriptor(_session: vscode.DebugSession): ProviderResult<vscode.DebugAdapterDescriptor> {
-        return new vscode.DebugAdapterInlineImplementation(new SquidDebugSession(workspaceFileAccessor));
+        return new vscode.DebugAdapterInlineImplementation(new SdbClientSession(workspaceFileAccessor));
     }
 }

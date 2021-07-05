@@ -11,8 +11,8 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { platform } from 'process';
 import { ProviderResult } from 'vscode';
-import { SquidDebugSession } from './squidDebug';
-import { activateSquidDebug, workspaceFileAccessor } from './activateSquidDebug';
+import { SdbClientSession } from './sdbClientSession';
+import { activateSdbClient, workspaceFileAccessor } from './activateSdbClient';
 import { logger } from 'vscode-debugadapter';
 
 /*
@@ -22,7 +22,7 @@ import { logger } from 'vscode-debugadapter';
 const runMode: 'external' | 'server' | 'namedPipeServer' | 'inline' = 'inline';
 
 export function activate(context: vscode.ExtensionContext) {
-    let channel = vscode.window.createOutputChannel("Squid");
+    let channel = vscode.window.createOutputChannel("Squirrel DeBug (SDB)");
     context.subscriptions.push(channel);
     channel.appendLine("Extension activating.");
     logger.init((e) => {
@@ -49,22 +49,22 @@ export function activate(context: vscode.ExtensionContext) {
     switch (runMode) {
         case 'server':
             // run the debug adapter as a server inside the extension and communicate via a socket
-            activateSquidDebug(context, new SquidDebugAdapterServerDescriptorFactory());
+            activateSdbClient(context, new SdbClientDebugAdapterServerDescriptorFactory());
             break;
 
         case 'namedPipeServer':
             // run the debug adapter as a server inside the extension and communicate via a named pipe (Windows) or UNIX domain socket (non-Windows)
-            activateSquidDebug(context, new SquidDebugAdapterNamedPipeServerDescriptorFactory());
+            activateSdbClient(context, new SdbClientDebugAdapterNamedPipeServerDescriptorFactory());
             break;
 
         case 'external': default:
             // run the debug adapter as a separate process
-            activateSquidDebug(context, new DebugAdapterExecutableFactory());
+            activateSdbClient(context, new DebugAdapterExecutableFactory());
             break;
 
         case 'inline':
             // run the debug adapter inside the extension and directly talk to it
-            activateSquidDebug(context);
+            activateSdbClient(context);
             break;
     }
 }
@@ -100,7 +100,7 @@ class DebugAdapterExecutableFactory implements vscode.DebugAdapterDescriptorFact
     }
 }
 
-class SquidDebugAdapterServerDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
+class SdbClientDebugAdapterServerDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
 
     private server?: Net.Server;
 
@@ -109,7 +109,7 @@ class SquidDebugAdapterServerDescriptorFactory implements vscode.DebugAdapterDes
         if (!this.server) {
             // start listening on a random port
             this.server = Net.createServer(socket => {
-                const session = new SquidDebugSession(workspaceFileAccessor);
+                const session = new SdbClientSession(workspaceFileAccessor);
                 session.setRunAsServer(true);
                 session.start(socket as NodeJS.ReadableStream, socket);
             }).listen(0);
@@ -126,7 +126,7 @@ class SquidDebugAdapterServerDescriptorFactory implements vscode.DebugAdapterDes
     }
 }
 
-class SquidDebugAdapterNamedPipeServerDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
+class SdbClientDebugAdapterNamedPipeServerDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
 
     private server?: Net.Server;
 
@@ -138,7 +138,7 @@ class SquidDebugAdapterNamedPipeServerDescriptorFactory implements vscode.DebugA
             const pipePath = platform === "win32" ? join('\\\\.\\pipe\\', pipeName) : join(tmpdir(), pipeName);
 
             this.server = Net.createServer(socket => {
-                const session = new SquidDebugSession(workspaceFileAccessor);
+                const session = new SdbClientSession(workspaceFileAccessor);
                 session.setRunAsServer(true);
                 session.start(<NodeJS.ReadableStream>socket, socket);
             }).listen(pipePath);

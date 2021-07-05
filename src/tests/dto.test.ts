@@ -1,5 +1,5 @@
 import assert = require('assert');
-import { Runstate, StackEntry, Status } from '../squidDto';
+import { Runstate, StackEntry, Status } from '../sdbDto';
 
 class Fixtures {
     // Note this is upper case, as that is what the remote service will send.

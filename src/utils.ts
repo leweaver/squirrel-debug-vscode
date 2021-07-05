@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-const CONFIG_CONTAINER = "squid_tools";
+const CONFIG_CONTAINER = "sdb_config";
 
 export function getConfiguration(name: string, defaultValue: any = null) {
 	return vscode.workspace.getConfiguration(CONFIG_CONTAINER).get(name, defaultValue) || defaultValue;
