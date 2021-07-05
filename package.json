@@ -22,10 +22,10 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/Microsoft/vscode-mock-debug.git"
+    "url": "https://github.com/leweaver/squirrel-debug-vscode.git"
   },
   "bugs": {
-    "url": "https://github.com/Microsoft/vscode-mock-debug/issues"
+    "url": "https://github.com/leweaver/squirrel-debug-vscode/issues"
   },
   "scripts": {
     "vscode:prepublish": "yarn run package-ext && yarn run package-web",
@@ -37,10 +37,7 @@
     "test": "mocha --ui tdd ./out/tests/*.js",
     "package": "vsce package",
     "publish": "vsce publish",
-    "package-ext": "webpack --mode production --config ./build/extension.webpack.config.js",
-    "compile-web": "webpack --devtool nosources-source-map --config ./build/web-extension.webpack.config.js",
-    "watch-web": "webpack --watch --devtool nosources-source-map --info-verbosity verbose --config ./build/web-extension.webpack.config.js",
-    "package-web": "webpack --mode production --config ./build/web-extension.webpack.config.js"
+    "package-ext": "webpack --mode production --config ./build/extension.webpack.config.js"
   },
   "dependencies": {
     "await-notify": "1.0.1",
