@@ -4,7 +4,7 @@
 
 import { logger} from 'vscode-debugadapter';
 import { EventEmitter } from 'events';
-import { EventMessage, EventMessageType, Status, OutputLine, Runstate, Variable, ResolvedBreakpoint } from './sdbDto';
+import { EventMessage, EventMessageType, Status, OutputLine, Runstate, Variable, ResolvedBreakpoint, ImmediateValue } from './sdbDto';
 
 import encodeUrl = require('encodeurl');
 import got = require('got');
@@ -183,6 +183,15 @@ export class SdbClientRuntime extends EventEmitter {
     public async getGlobalVariables(path:string): Promise<Variable[]> {
         const dto = await this.sendQuery('Variables/Global?path=' + encodeUrl(path));
         return dto.variables.map((instanceData: any) => new Variable(instanceData));
+    }
+
+    /*
+     * Evaluate the expression in the scope of this stack frame. If -1, the expression is 
+     * evaluated in the global scope.
+     */
+    public async getImmediateValue(stackFrame: number, paths:string[]): Promise<ImmediateValue[]> {
+        const dto = await this.sendCommand('Variables/Immediate/' + stackFrame, paths);
+        return dto.values.map((instanceData: any) => new ImmediateValue(instanceData));
     }
 
     /*

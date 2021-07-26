@@ -79,6 +79,8 @@ export class OutputLine {
 
 export enum  VariableType { string, bool, integer, float, closure, class, instance, array, table, other, null };
 
+export enum VariableScope { local, global, evaluation };
+
 export class Variable {
     public pathIterator: number;
     public pathUiString: string;
@@ -108,6 +110,24 @@ export class Variable {
             this.valueRawAddress = 0;
             this.childCount = 0;
             this.instanceClassName = "";
+        }
+    }
+}
+
+export class ImmediateValue {
+    public variable: Variable;
+    public scope: VariableScope;
+    public iteratorPath: number[];
+
+    constructor(instanceData?: any) {
+        if (instanceData) {
+            this.variable = new Variable(instanceData.variable);
+            this.scope = VariableScope[instanceData.scope as keyof typeof VariableScope];
+            this.iteratorPath = instanceData.iteratorPath;
+        } else {
+            this.variable = new Variable();
+            this.scope = VariableScope.local;
+            this.iteratorPath = [];
         }
     }
 }

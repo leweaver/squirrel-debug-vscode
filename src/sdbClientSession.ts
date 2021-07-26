@@ -12,7 +12,7 @@ import {
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
 import { SdbClientRuntime, ISdbClientBreakpoint, FileAccessor } from './sdbRuntime';
-import { Variable, VariableType } from './sdbDto';
+import { ImmediateValue, Variable, VariableScope, VariableType } from './sdbDto';
 import { Subject } from 'await-notify';
 
 function timeout(ms: number) {
@@ -342,12 +342,12 @@ export class SdbClientSession extends DebugSession {
         
         getVariablesPms.then((vars) => {
             const variables: DebugProtocol.Variable[] = [];
-            for (let v of vars) {
+            for (let v of vars) {                
                 let debugVarInfo = {
                     name: v.pathUiString,
-                    value: v.value,
+                    value: this.getVariableValueString(v, this._showHex),
                     variablesReference: 0,
-                    presentationHint: undefined,
+                    presentationHint: this.getVariablePresentationHint(v),
                 } as DebugProtocol.Variable;
                 
                 // Fields that clients may not support
@@ -358,38 +358,11 @@ export class SdbClientSession extends DebugSession {
                     debugVarInfo.memoryReference = '0x' + v.valueRawAddress.toString(16);
                 }
 
-                // Annotations and style
-                if (v.valueType === VariableType.integer) {
-                    const value: number = parseInt(v.value);
-                    if (typeof(value) === 'number' && !isNaN(value) && this._showHex) {
-                        debugVarInfo.value = '0x' + value.toString(16);
-                    }
-                }
-                if (v.valueType === VariableType.closure) {
-                    debugVarInfo.presentationHint = {
-                        kind: 'method'
-                    };
-                    debugVarInfo.value = 'FUNCTION ' + v.value;
-                } else if (v.valueType === VariableType.class) {
-                    debugVarInfo.presentationHint = {
-                        kind: 'class'
-                    };
-                    debugVarInfo.value = 'CLASS ' + v.value;
-                } else if (v.valueType === VariableType.instance) {
-                    debugVarInfo.value = `<${v.instanceClassName ?? 'INSTANCE'}> ${v.value}`; 
-                    if (v.valueRawAddress) {
-                        v.value += ` (0x${v.valueRawAddress})`;
-                    }
-                } else if (v.valueType === VariableType.table || v.valueType === VariableType.array) {
-                    debugVarInfo.value = `${VariableType[v.valueType].toUpperCase()} v.value`;
-                }
-
                 // Child id's
                 if (v.childCount > 0) {
                     let subobjectId = id;
                     if (!id.endsWith(':')) { subobjectId += ','; }
                     subobjectId += v.pathIterator;
-
                     debugVarInfo.variablesReference = this._variableHandles.create(subobjectId);
                 }
 
@@ -410,6 +383,44 @@ export class SdbClientSession extends DebugSession {
             response.message = "Failed to retrieve variables.";
             this.sendResponse(response);
         });
+    }
+
+    protected getVariableValueString(v: Variable, showHex: boolean = false): string {
+        let valueString = v.value;
+        if (v.valueType === VariableType.integer) {
+            const value: number = parseInt(v.value);
+            if (typeof(value) === 'number' && !isNaN(value) && showHex) {
+                valueString = '0x' + value.toString(16);
+            }
+        }
+        if (v.valueType === VariableType.closure) {
+            valueString = 'FUNCTION ' + v.value;
+        } else if (v.valueType === VariableType.class) {
+            valueString = 'CLASS ' + v.value;
+        } else if (v.valueType === VariableType.instance) {
+            valueString = `<${v.instanceClassName ?? 'INSTANCE'}> ${v.value}`; 
+            if (v.valueRawAddress) {
+                valueString += ` (0x${v.valueRawAddress})`;
+            }
+        } else if (v.valueType === VariableType.table || v.valueType === VariableType.array) {
+            valueString = `${VariableType[v.valueType].toUpperCase()} ${v.value}`;
+        }
+        return valueString;
+    }
+
+    protected getVariablePresentationHint(v: Variable): DebugProtocol.VariablePresentationHint | undefined {
+        // Annotations and style
+        if (v.valueType === VariableType.closure) {
+            return {
+                kind: 'method'
+            };
+        } else if (v.valueType === VariableType.class) {
+            return {
+                kind: 'class'
+            };
+        } else {
+            return undefined;
+        }
     }
 
     protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
@@ -446,54 +457,100 @@ export class SdbClientSession extends DebugSession {
     }
     protected async evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): Promise<void> {
 
-        let reply: string | undefined = undefined;
 
-        if (args.context === 'repl') {
+        switch (args.context) {
+            case 'repl': {
+                let reply: string | undefined = undefined;
 
-            if (1 === 1) {
-                throw new Error("Not sure what all this mumbo jumbo is, and it certainly won't work with the remote debugger.");
-            }
+                if (1 === 1) {
+                    throw new Error("Not sure what all this mumbo jumbo is, and it certainly won't work with the remote debugger.");
+                }
 
-            // 'evaluate' supports to create and delete breakpoints from the 'repl':
-            const matches = /new +([0-9]+)/.exec(args.expression);
-            
-            // TODO:
-            var sourceFile ="";
-            if (matches && matches.length === 2) {
-                const mbp = await this._runtime.setBreakPoint(sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));
-                const bp = new Breakpoint(mbp.verified, this.convertDebuggerLineToClient(mbp.line), undefined, this.createSource(sourceFile)) as DebugProtocol.Breakpoint;
-                bp.id= mbp.id;
-                this.sendEvent(new BreakpointEvent('new', bp));
-                reply = `breakpoint created`;
-            } else {
-                const matches = /del +([0-9]+)/.exec(args.expression);
+                // 'evaluate' supports to create and delete breakpoints from the 'repl':
+                const matches = /new +([0-9]+)/.exec(args.expression);
+                
+                // TODO:
+                var sourceFile ="";
                 if (matches && matches.length === 2) {
-                    const mbp = this._runtime.clearBreakPoint(sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));
-                    if (mbp) {
-                        const bp = new Breakpoint(false) as DebugProtocol.Breakpoint;
-                        bp.id= mbp.id;
-                        this.sendEvent(new BreakpointEvent('removed', bp));
-                        reply = `breakpoint deleted`;
-                    }
+                    const mbp = await this._runtime.setBreakPoint(sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));
+                    const bp = new Breakpoint(mbp.verified, this.convertDebuggerLineToClient(mbp.line), undefined, this.createSource(sourceFile)) as DebugProtocol.Breakpoint;
+                    bp.id= mbp.id;
+                    this.sendEvent(new BreakpointEvent('new', bp));
+                    reply = `breakpoint created`;
                 } else {
-                    const matches = /progress/.exec(args.expression);
-                    if (matches && matches.length === 1) {
-                        if (this._reportProgress) {
-                            reply = `progress started`;
-                            this.progressSequence();
-                        } else {
-                            reply = `frontend doesn't support progress (capability 'supportsProgressReporting' not set)`;
+                    const matches = /del +([0-9]+)/.exec(args.expression);
+                    if (matches && matches.length === 2) {
+                        const mbp = this._runtime.clearBreakPoint(sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));
+                        if (mbp) {
+                            const bp = new Breakpoint(false) as DebugProtocol.Breakpoint;
+                            bp.id= mbp.id;
+                            this.sendEvent(new BreakpointEvent('removed', bp));
+                            reply = `breakpoint deleted`;
+                        }
+                    } else {
+                        const matches = /progress/.exec(args.expression);
+                        if (matches && matches.length === 1) {
+                            if (this._reportProgress) {
+                                reply = `progress started`;
+                                this.progressSequence();
+                            } else {
+                                reply = `frontend doesn't support progress (capability 'supportsProgressReporting' not set)`;
+                            }
                         }
                     }
                 }
-            }
-        }
+                response.body = {
+                    result: reply ? reply : `evaluate(context: '${args.context}', '${args.expression}')`,
+                    variablesReference: 0
+                };
 
-        response.body = {
-            result: reply ? reply : `evaluate(context: '${args.context}', '${args.expression}')`,
-            variablesReference: 0
-        };
-        this.sendResponse(response);
+                this.sendResponse(response);
+                break;
+            }
+            case 'hover':
+            case 'watch':
+            {
+                const frameId = args.frameId ?? -1;
+                this._runtime.getImmediateValue(frameId, [args.expression]).then((values: ImmediateValue[]) => {
+                    const variable = values[0].variable;
+                    response.body = {
+                        result: this.getVariableValueString(variable, args.format?.hex ?? false),
+                        presentationHint: this.getVariablePresentationHint(variable),
+                        variablesReference: 0,
+                        type: this._useVariableType ? VariableType[variable.valueType] : undefined,
+                        memoryReference: this._useMemoryReferences && variable.valueRawAddress ? '0x' + variable.valueRawAddress.toString(16) : undefined
+                    };
+                    
+                    if (values[0].scope === VariableScope.local) {
+                        response.body.variablesReference = this._variableHandles.create(
+                            `${values[0].scope}:${frameId}:${values[0].iteratorPath.join(',')}`);
+                    }
+                    else if (values[0].scope === VariableScope.global) {
+                        response.body.variablesReference = this._variableHandles.create(
+                            `${values[0].scope}:${values[0].iteratorPath.join(',')}`);
+                    }
+                    
+                    response.success = true;
+                    this.sendResponse(response);
+                }).catch((reason: any) => {
+                    if (reason instanceof Error) {
+                        reason = reason.name + ": " + reason.message;
+                    }
+        
+                    logger.error(`immediateValue request failed. reason: ${reason}`);
+                    response.success = false;
+                    response.message = "Failed to retrieve immediate value result.";
+                    this.sendResponse(response);
+                });
+                break;
+            }
+            default:
+                response.body = {
+                    result: `evaluate(context: '${args.context}', '${args.expression}')`,
+                    variablesReference: 0
+                };
+                this.sendResponse(response);
+        }
     }
 
     private async progressSequence() {
