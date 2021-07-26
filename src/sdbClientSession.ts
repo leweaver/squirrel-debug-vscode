@@ -512,7 +512,8 @@ export class SdbClientSession extends DebugSession {
             {
                 const frameId = args.frameId ?? -1;
                 this._runtime.getImmediateValue(frameId, [args.expression]).then((values: ImmediateValue[]) => {
-                    const variable = values[0].variable;
+                    const immediateVal = values[0];
+                    const variable = immediateVal.variable;
                     response.body = {
                         result: this.getVariableValueString(variable, args.format?.hex ?? false),
                         presentationHint: this.getVariablePresentationHint(variable),
@@ -521,15 +522,17 @@ export class SdbClientSession extends DebugSession {
                         memoryReference: this._useMemoryReferences && variable.valueRawAddress ? '0x' + variable.valueRawAddress.toString(16) : undefined
                     };
                     
-                    if (values[0].scope === VariableScope.local) {
-                        response.body.variablesReference = this._variableHandles.create(
-                            `${values[0].scope}:${frameId}:${values[0].iteratorPath.join(',')}`);
+                    if (variable.childCount > 0) {
+                        if (immediateVal.variableScope === VariableScope.local) {
+                            response.body.variablesReference = this._variableHandles.create(
+                                `local:${frameId}:${immediateVal.iteratorPath.join(',')}`);
+                        }
+                        else if (immediateVal.variableScope === VariableScope.global) {
+                            response.body.variablesReference = this._variableHandles.create(
+                                `global:${immediateVal.iteratorPath.join(',')}`);
+                        }
                     }
-                    else if (values[0].scope === VariableScope.global) {
-                        response.body.variablesReference = this._variableHandles.create(
-                            `${values[0].scope}:${values[0].iteratorPath.join(',')}`);
-                    }
-                    
+
                     response.success = true;
                     this.sendResponse(response);
                 }).catch((reason: any) => {

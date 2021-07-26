@@ -116,17 +116,17 @@ export class Variable {
 
 export class ImmediateValue {
     public variable: Variable;
-    public scope: VariableScope;
+    public variableScope: VariableScope;
     public iteratorPath: number[];
 
     constructor(instanceData?: any) {
         if (instanceData) {
             this.variable = new Variable(instanceData.variable);
-            this.scope = VariableScope[instanceData.scope as keyof typeof VariableScope];
+            this.variableScope = VariableScope[instanceData.variableScope as keyof typeof VariableScope];
             this.iteratorPath = instanceData.iteratorPath;
         } else {
             this.variable = new Variable();
-            this.scope = VariableScope.local;
+            this.variableScope = VariableScope.local;
             this.iteratorPath = [];
         }
     }
