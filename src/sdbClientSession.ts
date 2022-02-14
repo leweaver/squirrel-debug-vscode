@@ -235,9 +235,11 @@ export class SdbClientSession extends DebugSession {
 
     protected async setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments): Promise<void> {
 
+        // TODO:
+        /*
         let namedException: string | undefined = undefined;
         let otherExceptions = false;
-
+       
         if (args.filterOptions) {
             for (const filterOption of args.filterOptions) {
                 switch (filterOption.filterId) {
@@ -257,10 +259,8 @@ export class SdbClientSession extends DebugSession {
             }
         }
 
-        // TODO:
-        //this._runtime.setExceptionsFilters(namedException, otherExceptions);
-        logger.log("UNIMPLEMENTED: " + namedException + otherExceptions);
-
+        this._runtime.setExceptionsFilters(namedException, otherExceptions);
+        */
         this.sendResponse(response);
     }
 

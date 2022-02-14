@@ -1,7 +1,7 @@
 {
   "name": "squirrel-debug",
   "displayName": "Squirrel Debug Client",
-  "version": "0.3.0",
+  "version": "0.2.0",
   "publisher": "LewisWeaver",
   "description": "Extension for debugging squirrel based VM's in a host application, remotely in VS Code.",
   "author": {

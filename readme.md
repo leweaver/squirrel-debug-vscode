@@ -26,15 +26,14 @@ If you encounter issues, you can take a look in the `Squirrel Debug (SDB)` chann
 - Pause, resume, terminate, stepping in/out/over
 - Inspection of local variables at all levels of the stack
 - Inspection of global variables
+- Variable hover support
+- Watch window
 - Hierarchical inspection of Table, Array and Instance variables
 - ::print(), ::error() redirection from application to VSCode console
 - Multiple VS code debuggers concurrently connected to a single SDB instance.
 
 # Unsupported Debugger Features
 ## High-Pri TODO list. Aiming for next version
-- Improved output of variables in inspector
-- Variable hover support
-- Watch window
 - Modification of variable values (int and string only?)
 - Provide option to set current working directory prior to launching process for 'Debug Open File' mode
 

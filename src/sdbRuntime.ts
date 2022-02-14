@@ -142,9 +142,6 @@ export class SdbClientRuntime extends EventEmitter {
 
     public async disconnect(): Promise<void> {
         if (this._ws) {
-            if (this._pid) {
-                await this.sendCommand('Terminate');
-            }
             this._ws?.close();
             this._ws = undefined;
         }
@@ -255,7 +252,7 @@ export class SdbClientRuntime extends EventEmitter {
 
     private async verifyBreakpoints(path: string): Promise<void> {
         const bps = this._breakPoints.get(path);
-        logger.log("in verifyBreakpoints bps.length=" + (bps?.length ?? "null") + " _connected=" + this._connected);
+        logger.log("verifyBreakpoints bps.length=" + (bps?.length ?? "null") + " _connected=" + this._connected);
         if (bps) {
             if (this._connected) {
                 const breakpoints = bps.map((bp: ISdbClientBreakpoint) => {
@@ -278,6 +275,7 @@ export class SdbClientRuntime extends EventEmitter {
                     this.sendEvent('breakpointValidated', bp);
                 });
             } else {
+                logger.warn('verifyBreakpoints: not connected, setting all as invalid.');
                 bps.forEach(bp => {
                     if (bp.verified = false) {
                         this.sendEvent('breakpointValidated', bp);
@@ -285,7 +283,7 @@ export class SdbClientRuntime extends EventEmitter {
                 });
             }
         } else {
-            logger.log('no bps for path: ' + path);
+            logger.verbose('verifyBreakpoints: no breakpoints for path: ' + path);
         }
     }
 
@@ -383,7 +381,7 @@ export class SdbClientRuntime extends EventEmitter {
 
     private async sendCommand(commandName: string, data: any = undefined) {
         let uri = `http://${this._debuggerHostnamePort}/DebugCommand/${commandName}`;
-        logger.log(uri);
+        logger.verbose('Sending command: ' + uri);
         const {body} = await got.put(uri, {
             json: true,
             body: data
@@ -392,7 +390,7 @@ export class SdbClientRuntime extends EventEmitter {
     }
     private async sendQuery(commandName: string) {
         let uri = `http://${this._debuggerHostnamePort}/DebugCommand/${commandName}`;
-        logger.log(uri);
+        logger.verbose('Sending query: ' + uri);
         const {body} = await got(uri, {
             json: true
         });
@@ -400,8 +398,10 @@ export class SdbClientRuntime extends EventEmitter {
     }
 
     private updateStatus(status: Status) {
+        // Once we receive at least 1 status message, the connection handshake is complete.
+        this._didConnectSuccessfully = true;
+
         this._status = status;
-        
         if (status.runstate === Runstate.paused) {
             if (status.pausedAtBreakpointId > 0) {
                 logger.log('Hit breakpoint ' + status.pausedAtBreakpointId);

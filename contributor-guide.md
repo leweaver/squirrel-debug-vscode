@@ -13,8 +13,7 @@ The extension should now build, and launch a new VSCode window that contains the
 # Making a new release
 See: https://code.visualstudio.com/api/working-with-extensions/publishing-extension
 
-tl;dr
+Note: using `vsce publish minor` command is one option. The alternative is to manually edit the package.json file and increment the "version" field prior to running `vsce package`, then upload to https://marketplace.visualstudio.com/manage/
 
 npm install -g vsce
 vsce package
-vsce publish minor
