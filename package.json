@@ -72,21 +72,30 @@
     "onDebugResolve:squirrel",
     "onDebugDynamicConfigurations:squirrel",
     "onCommand:extension.squirrel-debug.getProgramName",
-    "onCommand:extension.squirrel-debug.runEditorContents",
-    "onCommand:extension.squirrel-debug.debugEditorContents"
+    "onCommand:extension.squirrel-debug.debugEditorContents",
+    "onCommand:extension.squirrel-debug.debugStoppedEditorContents"
   ],
   "workspaceTrust": {
     "request": "never"
   },
   "contributes": {
+    "languages": [
+      {
+        "id": "squirrel",
+        "aliases": ["Squirrel", "quirrel"],
+        "extensions": [
+          ".nut"
+        ]
+      }
+    ],
     "menus": {
       "editor/title/run": [
         {
-          "command": "extension.squirrel-debug.runEditorContents",
+          "command": "extension.squirrel-debug.debugEditorContents",
           "when": "resourceLangId == squirrel"
         },
         {
-          "command": "extension.squirrel-debug.debugEditorContents",
+          "command": "extension.squirrel-debug.debugStoppedEditorContents",
           "when": "resourceLangId == squirrel"
         }
       ],
@@ -96,7 +105,7 @@
           "when": "resourceLangId == squirrel"
         },
         {
-          "command": "extension.squirrel-debug.runEditorContents",
+          "command": "extension.squirrel-debug.debugStoppedEditorContents",
           "when": "resourceLangId == squirrel"
         }
       ],
@@ -116,11 +125,11 @@
         "icon": "$(debug-alt)"
       },
       {
-        "command": "extension.squirrel-debug.runEditorContents",
-        "title": "Run File",
+        "command": "extension.squirrel-debug.debugStoppedEditorContents",
+        "title": "Debug File (Stop first line)",
         "category": "Squirrel Debug",
         "enablement": "!inDebugMode",
-        "icon": "$(play)"
+        "icon": "$(debug-step-into)"
       },
       {
         "command": "extension.squirrel-debug.toggleFormatting",
@@ -202,13 +211,13 @@
           },
           {
             "label": "Squirrel Debug Current File",
-            "description": "A new configuration for connection the debugger to an existing process running SDB",
+            "description": "A new configuration for launching an executable with the current file as a parameter, then connecting the debugger to that process",
             "body": {
               "type": "squirrel",
               "request": "launch",
               "name": "Run current file",
               "hostnamePort": "localhost:8000",
-              "program": "^\"\\\"\\${command:SdbRuntime}\\\" -p 8000 -s -f \\\"\\${file}\\\"\""
+              "launchProgram": "^\"\\\"\\${command:SdbRuntime}\\\" -p 8000 -s -f \\\"\\${file}\\\"\""
             }
           }
         ],

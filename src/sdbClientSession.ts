@@ -451,9 +451,9 @@ export class SdbClientSession extends DebugSession {
     protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
         this._runtime.stepOut().then(() => this.sendResponse(response));
     }
-    
-    protected terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments, request?: DebugProtocol.Request): void {
-        this._runtime.stop().then(() => this.sendResponse(response));
+    protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments, request?: DebugProtocol.Request): void {
+        
+        this._runtime.disconnect().then(() => this.sendResponse(response));
     }
     protected async evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): Promise<void> {
 

@@ -8,41 +8,30 @@ import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
 import { SdbClientSession } from './sdbClientSession';
 import { FileAccessor } from './sdbRuntime';
-import { getConfiguration } from './utils';
+import { getConfiguration, setConfiguration } from './utils';
 
 export function activateSdbClient(context: vscode.ExtensionContext, factory?: vscode.DebugAdapterDescriptorFactory) {
+    let startDebugCommandHandler = (resource: vscode.Uri, stopFirstLine: boolean) => {
+        let targetResource = resource;
+        if (!targetResource && vscode.window.activeTextEditor) {
+            targetResource = vscode.window.activeTextEditor.document.uri;
+        }
+        if (targetResource) {
+            vscode.debug.startDebugging(undefined, {
+                type: 'squirrel',
+                name: 'Debug File (Stop on first line)',
+                request: 'launch',
+                hostnamePort: "localhost:8000",
+                program: `"${getConfiguration('runtime_path')}" -p 8000 ${stopFirstLine?"-s ":""}-f "${targetResource.fsPath}"`
+            });
+        }
+    };
     context.subscriptions.push(
-        vscode.commands.registerCommand('extension.squirrel-debug.runEditorContents', (resource: vscode.Uri) => {
-            let targetResource = resource;
-            if (!targetResource && vscode.window.activeTextEditor) {
-                targetResource = vscode.window.activeTextEditor.document.uri;
-            }
-            if (targetResource) {
-                vscode.debug.startDebugging(undefined, {
-                        type: 'squirrel',
-                        name: 'Run File',
-                        request: 'launch',
-                        hostnamePort: "localhost:8000",
-                        program: `"${getConfiguration('runtime_path')}" -p 8000 -s -f "${targetResource.fsPath}"`
-                    },
-                    { noDebug: true }
-                );
-            }
-        }),
         vscode.commands.registerCommand('extension.squirrel-debug.debugEditorContents', (resource: vscode.Uri) => {
-            let targetResource = resource;
-            if (!targetResource && vscode.window.activeTextEditor) {
-                targetResource = vscode.window.activeTextEditor.document.uri;
-            }
-            if (targetResource) {
-                vscode.debug.startDebugging(undefined, {
-                    type: 'squirrel',
-                    name: 'Debug File',
-                    request: 'launch',
-                    hostnamePort: "localhost:8000",
-                    program: `"${getConfiguration('runtime_path')}" -p 8000 -s -f "${targetResource.fsPath}"`
-                });
-            }
+            startDebugCommandHandler(resource, false);
+        }),
+        vscode.commands.registerCommand('extension.squirrel-debug.debugStoppedEditorContents', (resource: vscode.Uri) => {
+            startDebugCommandHandler(resource, true);
         }),
         vscode.commands.registerCommand('extension.squirrel-debug.toggleFormatting', (variable) => {
             const ds = vscode.debug.activeDebugSession;
@@ -60,7 +49,26 @@ export function activateSdbClient(context: vscode.ExtensionContext, factory?: vs
     }));
 
     context.subscriptions.push(vscode.commands.registerCommand('extension.squirrel-debug.getSdbRuntime', config => {
-        return getConfiguration('runtime_path');
+        let fsPath = getConfiguration('runtime_path');
+        if (fsPath) {
+            return fsPath;
+        }
+        
+        return vscode.window.showOpenDialog({
+                "title": "Select Squirrel Debuggable Executable",
+                "canSelectMany": false,
+                "filters": {
+                    "executable": ['exe', 'bat', 'cmd', 'sh'], 
+                    "other": ['*']
+                }
+        }).then(fileArr => {
+            if (fileArr?.length !== 1) {
+                return Promise.reject('No file selected');
+            }
+            let fsPath = fileArr[0].fsPath;
+            setConfiguration('runtime_path', fsPath);
+            return Promise.resolve(fsPath);
+        });
     }));
 
     // register a configuration provider for current open 'squirrel' file debug type
@@ -149,12 +157,6 @@ class SdbConfigurationProvider implements vscode.DebugConfigurationProvider {
                 config.hostnamePort = "localhost:8000";
                 config.program = '"${command:SdbRuntime}" -p 8000 -s -f ${file}"';
 			}
-		}
-
-		if (!config.program) {
-			return vscode.window.showInformationMessage("Cannot find a program to debug").then(_ => {
-				return undefined;	// abort launch
-			});
 		}
 
 		return config;

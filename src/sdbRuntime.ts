@@ -62,6 +62,7 @@ export class SdbClientRuntime extends EventEmitter {
     private _debuggerHostnamePort = "localhost:8000";
     private _ws?: WebSocket = undefined;
     private _pid: number = 0;
+    private _didConnectSuccessfully: boolean = false;
 
     private _status?: Status = undefined;
 
@@ -80,18 +81,39 @@ export class SdbClientRuntime extends EventEmitter {
         // TODO: enable noDebug on server side?
         if (program) {
 			let executableLine = `${program}`;
-            // todo: add breakpoints on command line? how do we stop runaway?
-            const exec = cp.exec(executableLine);
-            exec.on('error', (error) => {
+            // todo: add breakpoints on command line to avoid race condition of adding breakpoints later on
+            const subprocess = cp.exec(executableLine);
+            if (subprocess.stdout) {
+                subprocess.stdout.on('data', (data) => {
+                    if (!this._connected) {
+                        logger.verbose(`Process ${subprocess.pid}: ${data}`);
+                    }
+                });
+            }
+            let lastStdErrs = [''];
+            if (subprocess.stderr) {
+                subprocess.stderr.on('data', (data) => {
+                    logger.error(`Process ${subprocess.pid}: ${data}`);
+                    lastStdErrs[0] = data;
+                });
+            }
+
+            subprocess.on('error', (error) => {
 				window.showErrorMessage(`Failed to launch instance: ${error}`);
                 this.emit('end');
 			});
 
-            const pid = exec.pid;
-            this._pid = pid;
-            logger.log('launched with PID ' + exec.pid);
 
-            exec.on("exit", (code) => {
+            const pid = subprocess.pid;
+            this._pid = pid;
+            this._didConnectSuccessfully = false;
+            logger.log('launched with PID ' + subprocess.pid);
+
+            subprocess.on("exit", (code) => {
+                if (!this._didConnectSuccessfully) {
+                    let lastErr = lastStdErrs[0] ? "\nLast stderr: " + lastStdErrs[0] : "";
+                    window.showErrorMessage(`Process exited before connection to debugger websocket could be established.${lastErr}`);
+                }
                 logger.log(`process ${pid} exited with code ${code}`);
                 this.emit('end');
             });
@@ -118,14 +140,17 @@ export class SdbClientRuntime extends EventEmitter {
             });
     }
 
-    public async stop(): Promise<void> {
+    public async disconnect(): Promise<void> {
+        if (this._ws) {
+            if (this._pid) {
+                await this.sendCommand('Terminate');
+            }
+            this._ws?.close();
+            this._ws = undefined;
+        }
         if (this._pid) {
             terminate.default(this._pid);
             this._pid = 0;
-        }
-        if (this._ws) {
-            this._ws?.close();
-            this._ws = undefined;
         }
     }
 
@@ -347,7 +372,7 @@ export class SdbClientRuntime extends EventEmitter {
                     logger.log("Unabled to handle message: " + message.type);
                     return Promise.reject();
             }
-        } catch (e) {
+        } catch (e: any) {
             logger.error('Failed to handle message: ' + msgStr + " (" + e.message + ")");
             return Promise.reject('Failed to handle message');
         }

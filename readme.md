@@ -1,18 +1,23 @@
 # VS Code Squirrel Debugger
-This extension is designed to connect to a [Squirrel DeBugger](https://github.com/leweaver/squirrel-debug-server) (SDB) running in a C++ process. This extension does not contain any syntax highlighting or language service features. For that, you will need to install one of the other existing extensions.
+This extension allows you to debug squirrel (or quirrel) scripts running in an embedded C++ squirrel runtime. 
 
-To quickly 'try it out', you can [download a pre-built sample application](https://github.com/leweaver/squirrel-debug-server/releases/) that runs Quirrel scripts with a started SDB instance.
+IMPORTANT: This extension does not work on its own - you must also embed a debug server into the application that you are running squirrel within. Squirrel language by itself does not offer debugging functionality; you must add it.
 
-To make proper use of SDB in your use case, you will want embed SDB into the application in which you have embedded squirrel.
+To add debugging functionality to your application, you need to embed the following C++ [Squirrel Debug Server](https://github.com/leweaver/squirrel-debug-server) (SDB). 
+
+This extension does not contain any syntax highlighting or language service features. For that, you will need to install one of the other existing extensions.
 
 # Instructions for use with Sample Binary
+To quickly 'try it out', you can [download a pre-built sample application](https://github.com/leweaver/squirrel-debug-server/releases/) that runs Quirrel scripts with a started SDB instance.
+
 1. Install this extension
 1. [Download latest sample binary](https://github.com/leweaver/squirrel-debug-server/releases/), then place in a convenient location.
 1. In your VSCode workspace, create/open the `.vscode/settings.json` file.
-1. Set the `"sdb_config.runtime_path"` field to the absolute path of your downloaded sample binary. Eg, `"C:\\vscode-quirrel-debugger\\sample_app.exe"`
 1. Open any squirrel file in your VSCode Workspace
 1. Press F5, or select the `Run`/`Start Debugging` menu.
+1. When prompted, locate the previously downloaded `sample_app.exe`
 
+# FAQ/Issues
 If you encounter issues, you can take a look in the `Squirrel Debug (SDB)` channel of the Output panel for information. 
 
 # Supported Debugger Features

@@ -1,4 +1,4 @@
 {
 	"debug.inlineValues": true,
-	"sdb_config.runtime_path": "C:\\repos\\vscode-quirrel-debugger\\squirrel-debug-server\\out\\build\\x64-Release (default)\\sample_app\\sample_app.exe"
+	"sdb_config.runtime_path": "c:\\repos\\squirrel-debug-server\\cmake-build-debug\\sample_app\\sample_app.exe"
 }
