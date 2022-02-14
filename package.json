@@ -1,7 +1,7 @@
 {
   "name": "squirrel-debug",
   "displayName": "Squirrel Debug Client",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "LewisWeaver",
   "description": "Extension for debugging squirrel based VM's in a host application, remotely in VS Code.",
   "author": {
@@ -10,7 +10,9 @@
   },
   "license": "MIT",
   "keywords": [
-    "squirrel", "quirrel", "debugger"
+    "squirrel",
+    "quirrel",
+    "debugger"
   ],
   "engines": {
     "vscode": "^1.55.0"
@@ -45,7 +47,7 @@
     "got": "^9.6.0",
     "vscode-debugadapter": "^1.47.0",
     "ws": "^7.4.6",
-		"terminate": "^2.1.2"
+    "terminate": "^2.1.2"
   },
   "devDependencies": {
     "@types/encodeurl": "^1.0.0",
@@ -82,7 +84,10 @@
     "languages": [
       {
         "id": "squirrel",
-        "aliases": ["Squirrel", "quirrel"],
+        "aliases": [
+          "Squirrel",
+          "quirrel"
+        ],
         "extensions": [
           ".nut"
         ]
@@ -142,16 +147,16 @@
       }
     ],
     "configuration": {
-			"type": "object",
-			"title": "Squirrel Debug (SDB) Tools configuration",
-			"properties": {
-				"sdb_config.runtime_path": {
-					"type": "string",
-					"default": "my_squrriel_app.exe",
-					"description": "The absolute path to the squirrel executable that contains the Squirrel Debug (SDB) Server."
-				}
-			}
-		},
+      "type": "object",
+      "title": "Squirrel Debug (SDB) Tools configuration",
+      "properties": {
+        "sdb_config.runtime_path": {
+          "type": "string",
+          "default": "my_squrriel_app.exe",
+          "description": "The absolute path to the squirrel executable that contains the Squirrel Debug (SDB) Server."
+        }
+      }
+    },
     "debuggers": [
       {
         "type": "squirrel",
@@ -163,7 +168,9 @@
         "runtime": "node",
         "configurationAttributes": {
           "launch": {
-            "required": ["hostnamePort"],
+            "required": [
+              "hostnamePort"
+            ],
             "properties": {
               "hostnamePort": {
                 "type": "string",
