@@ -10,5 +10,11 @@
 
 The extension should now build, and launch a new VSCode window that contains the built version of the extension.
 
-Things to add:
-- Note that runtime executable is stored in the extension settings menu. First run will select the squirrel executable to run the file with.
+# Making a new release
+See: https://code.visualstudio.com/api/working-with-extensions/publishing-extension
+
+tl;dr
+
+npm install -g vsce
+vsce package
+vsce publish minor
