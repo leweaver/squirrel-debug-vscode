@@ -86,14 +86,14 @@ export class SdbClientRuntime extends EventEmitter {
             if (subprocess.stdout) {
                 subprocess.stdout.on('data', (data) => {
                     if (!this._connected) {
-                        logger.verbose(`Process ${subprocess.pid}: ${data}`);
+                        logger.verbose(`Process ${subprocess.pid} STDOUT: ${data}`);
                     }
                 });
             }
             let lastStdErrs = [''];
             if (subprocess.stderr) {
                 subprocess.stderr.on('data', (data) => {
-                    logger.error(`Process ${subprocess.pid}: ${data}`);
+                    logger.error(`Process ${subprocess.pid} STDERR: ${data}`);
                     lastStdErrs[0] = data;
                 });
             }
@@ -110,9 +110,12 @@ export class SdbClientRuntime extends EventEmitter {
             logger.log('launched with PID ' + subprocess.pid);
 
             subprocess.on("exit", (code) => {
+                let lastErr = lastStdErrs[0] ? "\nLast stderr: " + lastStdErrs[0] : "";
                 if (!this._didConnectSuccessfully) {
-                    let lastErr = lastStdErrs[0] ? "\nLast stderr: " + lastStdErrs[0] : "";
-                    window.showErrorMessage(`Process exited before connection to debugger websocket could be established.${lastErr}`);
+                    window.showErrorMessage(`Process exited with code ${code} before connection to debugger websocket could be established.${lastErr}`);
+                }
+                else if (code !== 0) {
+                    window.showErrorMessage(`Process exited with code ${code}.${lastErr}`);
                 }
                 logger.log(`process ${pid} exited with code ${code}`);
                 this.emit('end');
@@ -399,7 +402,11 @@ export class SdbClientRuntime extends EventEmitter {
 
     private updateStatus(status: Status) {
         // Once we receive at least 1 status message, the connection handshake is complete.
-        this._didConnectSuccessfully = true;
+        logger.verbose(`updateStatus(${status})`);
+        if (!this._didConnectSuccessfully) {
+            logger.log(`Received status ${status}, setting _didConnectSuccessfully=true`);
+            this._didConnectSuccessfully = true;
+        }
 
         this._status = status;
         if (status.runstate === Runstate.paused) {
